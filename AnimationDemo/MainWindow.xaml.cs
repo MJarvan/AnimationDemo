@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -9,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -23,10 +26,11 @@ namespace AnimationDemo
 	public partial class MainWindow:Window
 	{
 		Rectangle rect;//创建一个方块进行演示 
+		Popup popup;//创建一个弹窗进行演示 
 		int rectangleNum = 0;
 		System.Windows.Threading.DispatcherTimer timer;
 		FontFamily fontfamily;
-
+		ScoreEF scoreEF = new ScoreEF() { Score = 0 };
 		public MainWindow()
 		{
 			InitializeComponent();
@@ -55,16 +59,28 @@ namespace AnimationDemo
 					break;
 				}
 			}
+			
+
+			Binding binding = new Binding()
+			{
+				Path = new PropertyPath("Score"),
+				Source = scoreEF,
+				Mode = BindingMode.TwoWay,
+				UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+			};
 			TextBlock textblock = new TextBlock();
-			textblock.Text = "0";
+			//textblock.Text = "0";
 			textblock.VerticalAlignment = VerticalAlignment.Bottom;
 			textblock.HorizontalAlignment = HorizontalAlignment.Center;
 			textblock.FontSize = 20;
 			textblock.FontFamily = fontfamily;
-			textblock.Background = new SolidColorBrush(Colors.White);
-			Popup popup = new Popup();
+			textblock.Background = new SolidColorBrush(Colors.Silver);
+			//textblock.SetBinding(,TextBox.TextProperty,binding);
+			BindingOperations.SetBinding(textblock,TextBlock.TextProperty,binding);
+			popup = new Popup();
 			popup.PlacementTarget = rect;
 			popup.Placement = PlacementMode.Top;
+			popup.PopupAnimation = PopupAnimation.Fade;
 			popup.Child = textblock;
 			popup.IsOpen = true;
 			popup.StaysOpen = true;
@@ -111,20 +127,25 @@ namespace AnimationDemo
 
 		private void Carrier_MouseLeftButtonDown(object sender,MouseButtonEventArgs e)
 		{
-			timer.Stop();
+			scoreEF.Score--;
+
+			if(timer != null)
+			{
+				timer.Stop();
+			}
 			Point p = e.GetPosition(Carrier);
 			Storyboard storyboard = new Storyboard();//新建一个动画板  
 
 			//添加X轴方向的动画  
 			DoubleAnimation doubleAnimation = new DoubleAnimation(
-			Canvas.GetLeft(rect),p.X-25,new Duration(TimeSpan.FromMilliseconds(500)));
+			Canvas.GetLeft(rect),(p.X - rect.Width / 2),new Duration(TimeSpan.FromMilliseconds(500)));
 			Storyboard.SetTarget(doubleAnimation,rect);
 			Storyboard.SetTargetProperty(doubleAnimation,new PropertyPath("(Canvas.Left)"));
 			storyboard.Children.Add(doubleAnimation);
 
 			//添加Y轴方向的动画  
 			doubleAnimation = new DoubleAnimation(
-			Canvas.GetTop(rect),p.Y-25,new Duration(TimeSpan.FromMilliseconds(500)));
+			Canvas.GetTop(rect),(p.Y - rect.Height / 2),new Duration(TimeSpan.FromMilliseconds(500)));
 			Storyboard.SetTarget(doubleAnimation,rect);
 			Storyboard.SetTargetProperty(doubleAnimation,new PropertyPath("(Canvas.Top)"));
 			storyboard.Children.Add(doubleAnimation);
@@ -153,11 +174,20 @@ namespace AnimationDemo
 						{
 							Carrier.Children.Remove(rt);
 							rectangleNum--;
+							scoreEF.Score++;
 							if(timer != null)
 							{
 								timer.Start();
 							}
 							return;
+						}
+					}
+					else
+					{
+						scoreEF.Score++;
+						if(timer != null)
+						{
+							timer.Start();
 						}
 					}
 				}
@@ -271,6 +301,30 @@ namespace AnimationDemo
 			{
 				return 0.0d;
 			}
+		}
+	}
+
+	public class ScoreEF:INotifyPropertyChanged
+	{
+		private int score;
+		public int Score
+		{
+			get
+			{
+				return score;
+			}
+			set
+			{
+				score = value;
+				OnChangedProperties("Score");
+			}
+		}
+
+		public event PropertyChangedEventHandler PropertyChanged;
+
+		public void OnChangedProperties(string propertyName)
+		{
+			this.PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(propertyName));
 		}
 	}
 }
