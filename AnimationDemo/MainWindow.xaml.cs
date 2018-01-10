@@ -26,7 +26,7 @@ namespace AnimationDemo
 	public partial class MainWindow:Window
 	{
 		Rectangle rect;//创建一个方块进行演示 
-		Popup popup;//创建一个弹窗进行演示 
+		NotTopmottPopup popup;//创建一个弹窗进行演示 
 		int rectangleNum = 0;
 		System.Windows.Threading.DispatcherTimer timer;
 		FontFamily fontfamily;
@@ -77,8 +77,9 @@ namespace AnimationDemo
 			textblock.Background = new SolidColorBrush(Colors.Silver);
 			//textblock.SetBinding(,TextBox.TextProperty,binding);
 			BindingOperations.SetBinding(textblock,TextBlock.TextProperty,binding);
-			popup = new Popup();
-			popup.PlacementTarget = rect;
+			popup = new NotTopmottPopup();
+			popup.Topmost = false;
+			popup.PlacementTarget = Carrier;
 			popup.Placement = PlacementMode.Top;
 			popup.PopupAnimation = PopupAnimation.Fade;
 			popup.Child = textblock;
@@ -113,7 +114,7 @@ namespace AnimationDemo
 			}
 			else
 			{
-				if(MessageBox.Show("你输啦,是否退出游戏?","提示",MessageBoxButton.YesNo,MessageBoxImage.Asterisk) == MessageBoxResult.Yes)
+				if(MessageBox.Show("你的得分是:"+scoreEF.Score.ToString()+",你输啦,是否退出游戏?","提示",MessageBoxButton.YesNo,MessageBoxImage.Asterisk) == MessageBoxResult.Yes)
 				{
 					Application.Current.Shutdown();
 				}
@@ -127,8 +128,6 @@ namespace AnimationDemo
 
 		private void Carrier_MouseLeftButtonDown(object sender,MouseButtonEventArgs e)
 		{
-			scoreEF.Score--;
-
 			if(timer != null)
 			{
 				timer.Stop();
@@ -136,18 +135,32 @@ namespace AnimationDemo
 			Point p = e.GetPosition(Carrier);
 			Storyboard storyboard = new Storyboard();//新建一个动画板  
 
-			//添加X轴方向的动画  
+			//添加方块X轴方向的动画  
 			DoubleAnimation doubleAnimation = new DoubleAnimation(
 			Canvas.GetLeft(rect),(p.X - rect.Width / 2),new Duration(TimeSpan.FromMilliseconds(500)));
 			Storyboard.SetTarget(doubleAnimation,rect);
 			Storyboard.SetTargetProperty(doubleAnimation,new PropertyPath("(Canvas.Left)"));
 			storyboard.Children.Add(doubleAnimation);
 
-			//添加Y轴方向的动画  
+			//添加方块Y轴方向的动画  
 			doubleAnimation = new DoubleAnimation(
 			Canvas.GetTop(rect),(p.Y - rect.Height / 2),new Duration(TimeSpan.FromMilliseconds(500)));
 			Storyboard.SetTarget(doubleAnimation,rect);
 			Storyboard.SetTargetProperty(doubleAnimation,new PropertyPath("(Canvas.Top)"));
+			storyboard.Children.Add(doubleAnimation);
+
+			//添加计分器X轴方向的动画  
+			doubleAnimation = new DoubleAnimation(
+			Canvas.GetLeft(rect),(p.X - rect.Width / 2),new Duration(TimeSpan.FromMilliseconds(500)));
+			Storyboard.SetTarget(doubleAnimation,popup);
+			Storyboard.SetTargetProperty(doubleAnimation,new PropertyPath("(Popup.HorizontalOffset)"));
+			storyboard.Children.Add(doubleAnimation);
+
+			//添加计分器Y轴方向的动画  
+			doubleAnimation = new DoubleAnimation(
+			Canvas.GetTop(rect),(p.Y - rect.Height / 2),new Duration(TimeSpan.FromMilliseconds(500)));
+			Storyboard.SetTarget(doubleAnimation,popup);
+			Storyboard.SetTargetProperty(doubleAnimation,new PropertyPath("(Popup.VerticalOffset)"));
 			storyboard.Children.Add(doubleAnimation);
 
 			if(!Resources.Contains("rectAnimation"))
@@ -180,14 +193,6 @@ namespace AnimationDemo
 								timer.Start();
 							}
 							return;
-						}
-					}
-					else
-					{
-						scoreEF.Score++;
-						if(timer != null)
-						{
-							timer.Start();
 						}
 					}
 				}
@@ -326,5 +331,58 @@ namespace AnimationDemo
 		{
 			this.PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(propertyName));
 		}
+	}
+
+	public class NotTopmottPopup:Popup
+	{
+		//创造依赖项属性
+		public static DependencyProperty TopmostProperty = Window.TopmostProperty.AddOwner(typeof(NotTopmottPopup),new FrameworkPropertyMetadata(false,OnTopmostChanged));
+		public bool Topmost
+		{
+			get
+			{
+				return (bool)GetValue(TopmostProperty);
+			}
+			set
+			{
+				SetValue(TopmostProperty,value);
+			}	
+		}
+		//topmost值改变时要更新窗口
+		private static void OnTopmostChanged(DependencyObject obj,DependencyPropertyChangedEventArgs e)
+		{
+			(obj as NotTopmottPopup).UpdateWindow();
+		}
+		//重写popup打开时的窗口事件
+		protected override void OnOpened(EventArgs e)
+		{
+			UpdateWindow();
+		}
+		private void UpdateWindow()
+		{
+			//获取popup句柄
+			var hwnd = ((HwndSource)PresentationSource.FromVisual(this.Child)).Handle;
+			RECT rect;
+			if(GetWindowRect(hwnd,out rect))
+			{
+				//根据topmost的值设置是否置顶
+				SetWindowPos(hwnd,Topmost ? -1 : -2,rect.Left,rect.Top,(int)this.Width,(int)this.Height,0);
+			}
+		}
+		#region DLL引用的接口和定义
+		[StructLayout(LayoutKind.Sequential)]
+		public struct RECT
+		{
+			public int Left;
+			public int Top;
+			public int Right;
+			public int Bottom;
+		}
+		[DllImport("user32.dll")]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool GetWindowRect(IntPtr hWnd,out RECT lpRect);
+		[DllImport("user32",EntryPoint = "SetWindowPos")]
+		private static extern int SetWindowPos(IntPtr hWnd,int hwndInsertAfter,int x,int y,int cx,int cy,int wFlags);
+		#endregion
 	}
 }
