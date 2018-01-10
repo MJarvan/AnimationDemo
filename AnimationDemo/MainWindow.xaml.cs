@@ -27,10 +27,11 @@ namespace AnimationDemo
 	{
 		Rectangle rect;//创建一个方块进行演示 
 		NotTopmottPopup popup;//创建一个弹窗进行演示 
-		int rectangleNum = 0;
-		System.Windows.Threading.DispatcherTimer timer;
-		FontFamily fontfamily;
+		int rectangleNum = 0;//黑方块的数量
+		System.Windows.Threading.DispatcherTimer timer;//定时器
+		FontFamily fontfamily;//字体
 		ScoreEF scoreEF = new ScoreEF() { Score = 0 };
+
 		public MainWindow()
 		{
 			InitializeComponent();
@@ -59,8 +60,6 @@ namespace AnimationDemo
 					break;
 				}
 			}
-			
-
 			Binding binding = new Binding()
 			{
 				Path = new PropertyPath("Score"),
@@ -69,13 +68,11 @@ namespace AnimationDemo
 				UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
 			};
 			TextBlock textblock = new TextBlock();
-			//textblock.Text = "0";
 			textblock.VerticalAlignment = VerticalAlignment.Bottom;
 			textblock.HorizontalAlignment = HorizontalAlignment.Center;
 			textblock.FontSize = 20;
 			textblock.FontFamily = fontfamily;
 			textblock.Background = new SolidColorBrush(Colors.Silver);
-			//textblock.SetBinding(,TextBox.TextProperty,binding);
 			BindingOperations.SetBinding(textblock,TextBlock.TextProperty,binding);
 			popup = new NotTopmottPopup();
 			popup.Topmost = false;
@@ -93,6 +90,11 @@ namespace AnimationDemo
 			timer.Start();
 		}
 
+		/// <summary>
+		/// 定时生成黑方块
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
 		private void OnTimedEvent(object sender,EventArgs e)
 		{
 			if(rectangleNum < 3)
@@ -126,6 +128,11 @@ namespace AnimationDemo
 			}	
 		}
 
+		/// <summary>
+		/// 点击和动画添加事件
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
 		private void Carrier_MouseLeftButtonDown(object sender,MouseButtonEventArgs e)
 		{
 			if(timer != null)
@@ -172,6 +179,11 @@ namespace AnimationDemo
 			storyboard.Begin();//开始运行动画
 		}
 
+		/// <summary>
+		/// 动画结束后判断是否消去方块
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
 		private void Storyboard_Completed(object sender,EventArgs e)
 		{
 			bool isIntersect = false;
@@ -188,6 +200,7 @@ namespace AnimationDemo
 							Carrier.Children.Remove(rt);
 							rectangleNum--;
 							scoreEF.Score++;
+							OnTimedEvent(sender,e);
 							if(timer != null)
 							{
 								timer.Start();
@@ -203,14 +216,21 @@ namespace AnimationDemo
 			}
 		}
 
+		/// <summary>
+		/// 每一个黑方块和红方块对比
+		/// </summary>
+		/// <param name="RecA">红方块</param>
+		/// <param name="RecB">黑方块</param>
+		/// <returns></returns>
 		public bool JudgeRectangleIntersect(Rectangle RecA, Rectangle RecB)
 		{
 			bool isIntersect = false;
-
+			//100%重合 直接消去
 			if((double)RecA.GetValue(Canvas.LeftProperty) == (double)RecB.GetValue(Canvas.LeftProperty) && (double)RecA.GetValue(Canvas.TopProperty) == (double)RecB.GetValue(Canvas.TopProperty))
 			{
 				return true;
 			}
+			//循环判断红方块的四个点哪个点在黑方块里面
 			else
 			{
 				Dictionary<string,Point> pointDic = new Dictionary<string,Point>();
@@ -236,17 +256,25 @@ namespace AnimationDemo
 			return isIntersect;
 		}
 
+		/// <summary>
+		/// 计算红方块和黑方块的重叠面积
+		/// </summary>
+		/// <param name="item">包含红方块点的键值对</param>
+		/// <param name="recB">黑方块</param>
+		/// <returns></returns>
 		private bool JudgePointToRectangle(KeyValuePair<string,Point> item,Rectangle recB)
 		{
 			bool isIntersect = false;
 
 			Point PointA = item.Value;
-
+			//判断X轴是否重叠
 			if((double)recB.GetValue(Canvas.LeftProperty) < PointA.X && PointA.X < (double)recB.GetValue(Canvas.LeftProperty) + recB.ActualWidth)
 			{
+				//判断Y轴是否重叠
 				if((double)recB.GetValue(Canvas.TopProperty) < PointA.Y && PointA.Y < (double)recB.GetValue(Canvas.TopProperty) + recB.ActualHeight)
 				{
 					Point PointB = new Point();
+					//用红方块的点的相对面得知黑方块的点
 					switch(item.Key)
 					{
 						case "LT":
@@ -274,10 +302,12 @@ namespace AnimationDemo
 								return false;
 							}
 					}
+					//计算两点之间的面积
 					double X = Math.Abs(PointA.X - PointB.X);
 					double Y = Math.Abs(PointA.Y - PointB.Y);
 					double Area = X * Y;
 					double Brea = recB.ActualHeight * recB.ActualWidth;
+					//对比重叠面积 如果大于80%就可以消去
 					if(Area > Brea * 0.8)
 					{
 						isIntersect = true;
@@ -309,6 +339,9 @@ namespace AnimationDemo
 		}
 	}
 
+	/// <summary>
+	/// 分数实体
+	/// </summary>
 	public class ScoreEF:INotifyPropertyChanged
 	{
 		private int score;
