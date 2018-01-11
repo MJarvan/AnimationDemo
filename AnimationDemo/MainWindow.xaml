@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AnimationDemo"
         mc:Ignorable="d"
-        Title="MainWindow" Width="800" Height="600" Loaded="Window_Loaded">
+        Title="MainWindow" Width="800" Height="600" Loaded="Window_Loaded" PreviewKeyDown="Window_PreviewKeyDown">
 	<Canvas x:Name="Carrier" Width="750" Height="450" Background="Silver" 
             MouseLeftButtonDown="Carrier_MouseLeftButtonDown">
 	</Canvas>

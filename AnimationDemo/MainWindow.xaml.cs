@@ -26,7 +26,7 @@ namespace AnimationDemo
 	public partial class MainWindow:Window
 	{
 		Rectangle rect;//创建一个方块进行演示 
-		NotTopmottPopup popup;//创建一个弹窗进行演示 
+		NotTopmottPopup popup = new NotTopmottPopup();//创建一个弹窗进行演示 
 		int rectangleNum = 0;//黑方块的数量
 		System.Windows.Threading.DispatcherTimer timer;//定时器
 		FontFamily fontfamily;//字体
@@ -39,6 +39,9 @@ namespace AnimationDemo
 
 		private void Window_Loaded(object sender,RoutedEventArgs e)
 		{
+			Carrier.Children.Clear();
+			rectangleNum = 0;
+			scoreEF.Score = 0;
 			//对方块进行初始化  
 			rect = new Rectangle();
 			rect.Fill = new SolidColorBrush(Colors.Red);
@@ -74,7 +77,6 @@ namespace AnimationDemo
 			textblock.FontFamily = fontfamily;
 			textblock.Background = new SolidColorBrush(Colors.Silver);
 			BindingOperations.SetBinding(textblock,TextBlock.TextProperty,binding);
-			popup = new NotTopmottPopup();
 			popup.Topmost = false;
 			popup.PlacementTarget = Carrier;
 			popup.Placement = PlacementMode.Top;
@@ -122,8 +124,12 @@ namespace AnimationDemo
 				}
 				else
 				{
-					timer.Stop();
-					timer = null;
+					MessageBox.Show("按R可以重新开始游戏哦!");
+					if(timer != null)
+					{
+						timer.Stop();
+						timer = null;
+					}
 				}
 			}	
 		}
@@ -135,6 +141,8 @@ namespace AnimationDemo
 		/// <param name="e"></param>
 		private void Carrier_MouseLeftButtonDown(object sender,MouseButtonEventArgs e)
 		{
+			popup.IsOpen = true;
+			popup.StaysOpen = true;
 			if(timer != null)
 			{
 				timer.Stop();
@@ -200,9 +208,9 @@ namespace AnimationDemo
 							Carrier.Children.Remove(rt);
 							rectangleNum--;
 							scoreEF.Score++;
-							OnTimedEvent(sender,e);
 							if(timer != null)
 							{
+								OnTimedEvent(sender,e);
 								timer.Start();
 							}
 							return;
@@ -336,6 +344,16 @@ namespace AnimationDemo
 			{
 				return 0.0d;
 			}
+		}
+
+		private void Window_PreviewKeyDown(object sender,KeyEventArgs e)
+		{
+			if(e.ImeProcessedKey == Key.R && timer == null)
+			{
+				Window_Loaded(sender,e);
+				popup.IsOpen = false;
+			}
+			e.Handled = true;
 		}
 	}
 
